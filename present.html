@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Atomicity Presentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple transition for slides */
+        .slide {
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div id="presentation-container" class="w-full max-w-7xl bg-gray-800 rounded-lg shadow-2xl overflow-hidden">
+        <!-- Slides will be injected here by JavaScript -->
+        <div id="slides-wrapper" class="relative w-full" style="padding-top: 56.25%;"> <!-- 16:9 Aspect Ratio -->
+             <!-- Slide 1 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 text-center bg-gray-800">
+                <h1 class="text-4xl md:text-6xl font-bold text-cyan-400 mb-4">How Databases Ensure Atomicity</h1>
+                <p class="text-lg md:text-xl text-gray-300">A cornerstone of reliable database transactions.</p>
+            </div>
+
+            <!-- Slide 2 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex-col justify-center items-center p-8 text-left bg-gray-800 hidden">
+                <h2 class="text-3xl md:text-4xl font-bold text-cyan-400 mb-6">What is Atomicity?</h2>
+                <blockquote class="text-lg md:text-xl border-l-4 border-cyan-400 pl-4 italic text-gray-300 mb-4">
+                    "An atomic transaction is an indivisible and irreducible series of database operations such that either all occur, or none occur."
+                </blockquote>
+                <p class="text-md md:text-lg text-gray-400">A transaction is a single unit of work. If any part fails, the entire transaction is rolled back, leaving the database unchanged. This prevents partial updates and ensures data consistency.</p>
+            </div>
+
+            <!-- Slide 3 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col lg:flex-row justify-center items-center p-8 bg-gray-800 hidden">
+                <div class="lg:w-1/2 text-left pr-8">
+                    <h2 class="text-3xl font-bold text-cyan-400 mb-4">The Standard Commit Flow</h2>
+                    <p class="text-lg text-gray-300">Data is read from memory, changes are made, and then written back through various caches to the database file on disk.</p>
+                </div>
+                <div class="lg:w-1/2 mt-4 lg:mt-0">
+                    <img src="./initial_DB_flow.png" alt="Initial DB Flow" class="rounded-lg shadow-lg w-full h-auto object-contain max-h-80" onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                </div>
+            </div>
+
+            <!-- Slide 4 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col lg:flex-row justify-center items-center p-8 bg-gray-800 hidden">
+                 <div class="lg:w-1/2 text-left pr-8">
+                    <h2 class="text-3xl font-bold text-red-500 mb-4">What If It Fails?</h2>
+                    <p class="text-lg text-gray-300">Without atomicity, a crash during the commit process can lead to an inconsistent state. Changes might exist in a cache but not in the final database, leading to data corruption.</p>
+                </div>
+                <div class="lg:w-1/2 mt-4 lg:mt-0">
+                    <img src="./without_atomacity.png" alt="Without Atomicity Failure" class="rounded-lg shadow-lg w-full h-auto object-contain max-h-80" onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                </div>
+            </div>
+
+            <!-- Slide 5 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col lg:flex-row justify-center items-center p-8 bg-gray-800 hidden">
+                <div class="lg:w-1/2 text-left pr-8">
+                    <h2 class="text-3xl font-bold text-cyan-400 mb-4">The Solution: Write-Ahead Logging (WAL)</h2>
+                    <p class="text-lg text-gray-300">WAL ensures atomicity by writing all changes to a log file *before* applying them to the database. This log allows the system to recover from crashes by replaying or rolling back transactions.</p>
+                </div>
+                <div class="lg:w-1/2 mt-4 lg:mt-0">
+                    <img src="./simple_wal.png" alt="Simple WAL Diagram" class="rounded-lg shadow-lg w-full h-auto object-contain max-h-80" onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                </div>
+            </div>
+
+            <!-- Slide 6 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col lg:flex-row justify-center items-center p-8 bg-gray-800 hidden">
+                 <div class="lg:w-1/2 text-left pr-8">
+                    <h2 class="text-3xl font-bold text-cyan-400 mb-4">Inside the WAL: The Journal</h2>
+                    <p class="text-lg text-gray-300">The log, or journal, is an append-only file. Each record is protected by a CRC-32 checksum to ensure its integrity and prevent corruption.</p>
+                </div>
+                <div class="lg:w-1/2 mt-4 lg:mt-0">
+                    <img src="./wal_internal.png" alt="WAL Internal Diagram" class="rounded-lg shadow-lg w-full h-auto object-contain max-h-80" onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                </div>
+            </div>
+
+            <!-- Slide 7 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col lg:flex-row justify-center items-center p-8 bg-gray-800 hidden">
+                <div class="lg:w-1/2 text-left pr-8">
+                    <h2 class="text-3xl font-bold text-cyan-400 mb-4">WAL File Structure</h2>
+                    <p class="text-lg text-gray-300">The WAL consists of fixed-size files (e.g., 16MB). Each record has a unique Log Sequence Number (LSN), which is a combination of the file number and offset, allowing for efficient lookups during recovery.</p>
+                </div>
+                <div class="lg:w-1/2 mt-4 lg:mt-0">
+                    <img src="./wal_complete.png" alt="Complete WAL Diagram" class="rounded-lg shadow-lg w-full h-auto object-contain max-h-80" onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                </div>
+            </div>
+
+            <!-- Slide 8 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 text-left bg-gray-800 hidden">
+                <h2 class="text-3xl md:text-4xl font-bold text-cyan-400 mb-6">Conclusion</h2>
+                <ul class="list-disc list-inside text-lg md:text-xl text-gray-300 space-y-3">
+                    <li><span class="font-semibold text-white">Atomicity</span> is fundamental for data integrity and consistency.</li>
+                    <li>It ensures transactions are all-or-nothing operations.</li>
+                    <li><span class="font-semibold text-white">Write-Ahead Logging (WAL)</span> is a key mechanism to implement atomicity.</li>
+                    <li>WAL allows for reliable recovery from system failures, maintaining a consistent database state.</li>
+                </ul>
+            </div>
+             <!-- Slide 9 -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 text-left bg-gray-800 hidden">
+                <h2 class="text-3xl md:text-4xl font-bold text-cyan-400 mb-6">References</h2>
+                <ul class="list-disc list-inside text-sm md:text-base text-gray-400 space-y-2">
+                    <li><a href="https://en.wikipedia.org/wiki/Atomicity_(database_systems)" target="_blank" class="hover:text-cyan-400 underline">Wikipedia: Atomicity (database systems)</a></li>
+                    <li><a href="https://www.youtube.com/watch?v=wI4hKwl1Cn4" target="_blank" class="hover:text-cyan-400 underline">YouTube: How does the database guarantee reliability using write-ahead logging? (Arpit Bhayani)</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex items-center justify-between w-full max-w-4xl mt-4">
+        <button id="prev-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed">
+            Previous
+        </button>
+        <div id="slide-counter" class="text-gray-400 text-lg font-medium">
+            1 / 9
+        </div>
+        <button id="next-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed">
+            Next
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide');
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const slideCounter = document.getElementById('slide-counter');
+            let currentSlide = 0;
+            const totalSlides = slides.length;
+
+            function updateSlide() {
+                // Hide all slides
+                slides.forEach((slide, index) => {
+                    if (index === currentSlide) {
+                        slide.classList.remove('hidden');
+                        slide.style.opacity = 1;
+                    } else {
+                        slide.classList.add('hidden');
+                        slide.style.opacity = 0;
+                    }
+                });
+                
+                // Update counter
+                slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+
+                // Update button states
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < totalSlides - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    nextBtn.click();
+                } else if (e.key === 'ArrowLeft') {
+                    prevBtn.click();
+                }
+            });
+
+            // Initial setup
+            updateSlide();
+        });
+    </script>
+</body>
+</html>
