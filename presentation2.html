@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Atomicity & WAL - Professional Presentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        }
+
+        .slide {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .code-block {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-counter {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(6, 182, 212, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #06b6d4, #3b82f6);
+            transition: width 0.6s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div id="presentation-container" class="w-full max-w-7xl bg-gray-800/50 rounded-xl shadow-2xl overflow-hidden backdrop-blur-lg border border-gray-700/50">
+        <!-- Progress Bar -->
+        <div id="progress-bar" class="progress-bar w-0"></div>
+
+        <!-- Slides Container -->
+        <div id="slides-wrapper" class="relative w-full" style="padding-top: 56.25%;"> <!-- 16:9 Aspect Ratio -->
+
+            <!-- Slide 1: Title -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 text-center bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900">
+                <div class="slide-counter">1 / 16</div>
+                <div class="animate-fade-in">
+                    <h1 class="text-5xl md:text-7xl font-bold gradient-text mb-6 leading-tight">
+                        Database Atomicity
+                    </h1>
+                    <p class="text-xl md:text-2xl text-gray-300 mb-8 font-light">
+                        The Foundation of Reliable Transactions
+                    </p>
+                    <div class="flex items-center justify-center space-x-6 text-sm text-gray-400">
+                        <span class="glass-card px-4 py-2 rounded-full">Write-Ahead Logging</span>
+                        <span class="glass-card px-4 py-2 rounded-full">ACID Properties</span>
+                        <span class="glass-card px-4 py-2 rounded-full">Data Integrity</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: What is Atomicity? -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 text-center bg-gray-900 hidden">
+                <div class="slide-counter">2 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8">What is Atomicity?</h2>
+                    <div class="glass-card p-8 rounded-2xl mb-8">
+                        <blockquote class="text-xl md:text-2xl border-l-4 border-cyan-400 pl-6 italic text-gray-200 mb-6 text-left">
+                            "An atomic transaction is an indivisible and irreducible series of database operations such that either all occur, or none occur."
+                        </blockquote>
+                        <cite class="text-lg text-cyan-400 font-medium">— C. J. Date, Database Systems Expert</cite>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8 mt-8">
+                        <div class="glass-card p-6 rounded-xl">
+                            <div class="text-3xl mb-4">✅</div>
+                            <h3 class="text-xl font-semibold text-green-400 mb-2">All-or-Nothing</h3>
+                            <p class="text-gray-300">Either all operations succeed completely, or none are applied</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl">
+                            <div class="text-3xl mb-4">🔄</div>
+                            <h3 class="text-xl font-semibold text-blue-400 mb-2">Rollback on Failure</h3>
+                            <p class="text-gray-300">If any part fails, the entire transaction is rolled back</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3: Transaction Fundamentals -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">3 / 16</div>
+                <div class="max-w-6xl mx-auto text-center">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8">Transaction Fundamentals</h2>
+                    <div class="grid lg:grid-cols-2 gap-8 items-center">
+                        <div class="text-left">
+                            <p class="text-lg text-gray-300 mb-6">
+                                A transaction represents a logical unit of work consisting of one or more database operations.
+                            </p>
+                            <div class="space-y-2 text-gray-400">
+                                <div class="flex items-center">
+                                    <span class="w-2 h-2 bg-cyan-400 rounded-full mr-3"></span>
+                                    <span>INSERT operations</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-2 h-2 bg-cyan-400 rounded-full mr-3"></span>
+                                    <span>UPDATE operations</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-2 h-2 bg-cyan-400 rounded-full mr-3"></span>
+                                    <span>DELETE operations</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="w-2 h-2 bg-cyan-400 rounded-full mr-3"></span>
+                                    <span>SELECT operations</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-block p-6 rounded-xl">
+                            <pre class="language-sql"><code class="text-sm">-- Example transaction
+BEGIN TRANSACTION;
+
+UPDATE accounts
+SET balance = balance - 100
+WHERE account_id = 1;
+
+UPDATE accounts
+SET balance = balance + 100
+WHERE account_id = 2;
+
+INSERT INTO transactions
+(from_account, to_account, amount)
+VALUES (1, 2, 100);
+
+COMMIT;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 4: Database Commit Operations -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">4 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">Database Commit Operations</h2>
+                    <div class="grid lg:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">The Standard Process:</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-4">1</div>
+                                    <span class="text-gray-300">Read data block from disk into memory</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-4">2</div>
+                                    <span class="text-gray-300">Modify data in memory buffer</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-4">3</div>
+                                    <span class="text-gray-300">Write changes back to disk</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center">
+                            <img src="./initial_DB_flow.png" alt="Initial DB Flow" class="rounded-xl shadow-2xl w-full max-w-md object-contain"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 5: The Problem with Non-Atomic Commits -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">5 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold text-red-400 mb-8 text-center">The Problem with Non-Atomic Commits</h2>
+                    <div class="grid lg:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">Failure Scenario:</h3>
+                            <div class="code-block p-6 rounded-xl mb-4">
+                                <pre class="language-sql"><code class="text-sm">-- Money transfer transaction
+BEGIN TRANSACTION;
+UPDATE accounts SET balance = balance - 500 WHERE account_id = 'A';
+UPDATE accounts SET balance = balance + 500 WHERE account_id = 'B';
+COMMIT;</code></pre>
+                            </div>
+                            <div class="space-y-2 text-red-300">
+                                <div class="flex items-center">
+                                    <span class="text-red-500 mr-2">⚠️</span>
+                                    <span>System crashes after first UPDATE</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="text-red-500 mr-2">💸</span>
+                                    <span>Account A loses $500</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="text-red-500 mr-2">❌</span>
+                                    <span>Account B never receives $500</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="text-red-500 mr-2">🔄</span>
+                                    <span>Database in inconsistent state</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center">
+                            <img src="./without_atomacity.png" alt="Without Atomicity" class="rounded-xl shadow-2xl w-full max-w-md object-contain"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 6: WAL Introduction -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">6 / 16</div>
+                <div class="max-w-6xl mx-auto text-center">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8">The Solution: Write-Ahead Logging (WAL)</h2>
+                    <div class="glass-card p-8 rounded-2xl mb-8">
+                        <div class="text-6xl mb-4">📝</div>
+                        <p class="text-xl text-gray-300 mb-4">"Log before you modify" - The fundamental WAL principle</p>
+                        <p class="text-lg text-gray-400">All changes are logged to a durable file before being applied to the database</p>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-4 mt-8">
+                        <div class="glass-card p-4 rounded-lg text-center">
+                            <div class="text-2xl mb-2">🔒</div>
+                            <h4 class="font-semibold text-cyan-400">Durability</h4>
+                            <p class="text-sm text-gray-400">Changes survive crashes</p>
+                        </div>
+                        <div class="glass-card p-4 rounded-lg text-center">
+                            <div class="text-2xl mb-2">🔄</div>
+                            <h4 class="font-semibold text-cyan-400">Recovery</h4>
+                            <p class="text-sm text-gray-400">Complete system recovery</p>
+                        </div>
+                        <div class="glass-card p-4 rounded-lg text-center">
+                            <div class="text-2xl mb-2">⚡</div>
+                            <h4 class="font-semibold text-cyan-400">Performance</h4>
+                            <p class="text-sm text-gray-400">Sequential writes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 7: WAL Protocol Fundamentals -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">7 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">WAL Protocol Fundamentals</h2>
+                    <div class="grid lg:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">The WAL Process:</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold mr-4">1</div>
+                                    <span class="text-gray-300">Log changes to WAL file first</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold mr-4">2</div>
+                                    <span class="text-gray-300">Flush log to durable storage</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold mr-4">3</div>
+                                    <span class="text-gray-300">Apply changes to database</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold mr-4">4</div>
+                                    <span class="text-gray-300">Mark transaction as committed</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center">
+                            <img src="./simple_wal.png" alt="Simple WAL" class="rounded-xl shadow-2xl w-full max-w-md object-contain"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 8: WAL File Structure -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">8 / 16</div>
+                <div class="max-w-6xl mx-auto text-center">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8">WAL File Structure</h2>
+                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">Key Components:</h3>
+                            <div class="space-y-3">
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">Transaction ID</h4>
+                                    <p class="text-sm text-gray-400">Unique identifier for each transaction</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">Operation Type</h4>
+                                    <p class="text-sm text-gray-400">INSERT, UPDATE, DELETE, COMMIT</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">Before/After Images</h4>
+                                    <p class="text-sm text-gray-400">Original and modified data for rollback/recovery</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">Checksum</h4>
+                                    <p class="text-sm text-gray-400">CRC-32 for data integrity verification</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-block p-6 rounded-xl">
+                            <pre class="language-sql"><code class="text-sm">-- WAL Record Structure
+struct WALRecord {
+    uint32_t transaction_id;      -- Unique identifier
+    uint32_t record_type;         -- INSERT, UPDATE, DELETE, COMMIT
+    uint32_t table_id;            -- Which table is modified
+    uint64_t row_id;              -- Primary key of affected row
+    uint32_t data_length;         -- Length of data payload
+    char* before_image;           -- Original row data (UNDO)
+    char* after_image;            -- Modified row data (REDO)
+    uint32_t checksum;            -- CRC-32 integrity check
+    uint64_t timestamp;           -- When operation occurred
+};</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 9: Data Integrity Protection -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">9 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">Data Integrity Protection</h2>
+                    <div class="grid lg:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">CRC-32 Checksum Protection:</h3>
+                            <div class="space-y-3">
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-green-400 mr-2">✅</span>
+                                        <span class="font-semibold text-white">Corruption Detection</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Identifies any bit corruption in log records</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-green-400 mr-2">✅</span>
+                                        <span class="font-semibold text-white">Partial Write Detection</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Discards incomplete records from crashes</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-green-400 mr-2">✅</span>
+                                        <span class="font-semibold text-white">Data Consistency</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Ensures only valid records are applied</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-block p-6 rounded-xl">
+                            <pre class="language-sql"><code class="text-sm">// Simplified CRC-32 calculation
+uint32_t calculate_crc32(const char* data, size_t length) {
+    uint32_t crc = 0xFFFFFFFF;
+    for (size_t i = 0; i < length; i++) {
+        crc = crc32_table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
+    }
+    return crc ^ 0xFFFFFFFF;
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 10: Log File Organization -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">10 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">Log File Organization</h2>
+                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">Modern WAL Architecture:</h3>
+                            <div class="space-y-3">
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">File Size Optimization</h4>
+                                    <p class="text-sm text-gray-400">16MB to several GB depending on database system</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">Page-Based Architecture</h4>
+                                    <p class="text-sm text-gray-400">4KB (SQLite) or 8KB (PostgreSQL) page sizes</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">Log Sequence Numbers</h4>
+                                    <p class="text-sm text-gray-400">Unique identifiers combining file number and offset</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="code-block p-6 rounded-xl">
+                            <pre class="language-sql"><code class="text-sm">// Log Sequence Number structure
+struct LSN {
+    uint32_t file_number;    -- WAL file number
+    uint32_t page_offset;    -- Offset within file
+    uint32_t record_offset;  -- Offset within page
+};
+
+// Benefits
+- O(1) append operations
+- Efficient recovery
+- Parallel processing
+- Point-in-time recovery</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 11: Recovery Process -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">11 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">Recovery Process</h2>
+                    <div class="grid lg:grid-cols-2 gap-8 items-center">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">System Recovery Sequence:</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-4">1</div>
+                                    <span class="text-gray-300">Scan WAL files from last checkpoint</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-4">2</div>
+                                    <span class="text-gray-300">Validate checksums and discard corrupted records</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-4">3</div>
+                                    <span class="text-gray-300">Replay REDO operations for committed transactions</span>
+                                </div>
+                                <div class="flex items-center glass-card p-4 rounded-lg">
+                                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-4">4</div>
+                                    <span class="text-gray-300">Rollback UNDO operations for incomplete transactions</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center">
+                            <img src="./wal_complete.png" alt="Complete WAL" class="rounded-xl shadow-2xl w-full max-w-md object-contain"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/600x400/1f2937/9ca3af?text=Image+Not+Found';">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 12: Conclusion - Key Takeaways -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">12 / 16</div>
+                <div class="max-w-6xl mx-auto text-center">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8">Conclusion</h2>
+                    <div class="grid md:grid-cols-2 gap-8 mb-8">
+                        <div class="glass-card p-6 rounded-xl">
+                            <div class="text-3xl mb-4">🎯</div>
+                            <h3 class="text-xl font-semibold text-cyan-400 mb-2">Atomicity = All-or-Nothing</h3>
+                            <p class="text-gray-300">Transactions must be completely successful or completely rolled back</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl">
+                            <div class="text-3xl mb-4">📝</div>
+                            <h3 class="text-xl font-semibold text-cyan-400 mb-2">WAL Protocol</h3>
+                            <p class="text-gray-300">"Log before you modify" ensures durability and recoverability</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl">
+                            <div class="text-3xl mb-4">🔐</div>
+                            <h3 class="text-xl font-semibold text-cyan-400 mb-2">Data Integrity</h3>
+                            <p class="text-gray-300">Checksums and structured logging prevent corruption</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl">
+                            <div class="text-3xl mb-4">🏢</div>
+                            <h3 class="text-xl font-semibold text-cyan-400 mb-2">Business Critical</h3>
+                            <p class="text-gray-300">Essential for financial systems, e-commerce, and data consistency</p>
+                        </div>
+                    </div>
+                    <div class="code-block p-6 rounded-xl">
+                        <pre class="language-sql"><code class="text-sm">-- Modern database transaction with atomicity guarantee
+BEGIN;
+
+-- Multiple related operations
+INSERT INTO orders (customer_id, order_date, status) VALUES (123, NOW(), 'PENDING');
+UPDATE inventory SET stock = stock - 1 WHERE product_id = 456;
+INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (LAST_INSERT_ID(), 456, 1, 29.99);
+
+COMMIT; -- Either all succeed or all are rolled back</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 13: Practical Implications -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">13 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">Practical Implications</h2>
+                    <p class="text-xl text-gray-300 mb-8 text-center">Atomicity is particularly critical in real-world applications:</p>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="glass-card p-6 rounded-xl text-center">
+                            <div class="text-4xl mb-4">💳</div>
+                            <h3 class="text-lg font-semibold text-cyan-400 mb-2">Financial Transactions</h3>
+                            <p class="text-sm text-gray-400">Money transfers, stock trades, banking operations</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl text-center">
+                            <div class="text-4xl mb-4">🛒</div>
+                            <h3 class="text-lg font-semibold text-cyan-400 mb-2">E-commerce</h3>
+                            <p class="text-sm text-gray-400">Order processing and inventory management</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl text-center">
+                            <div class="text-4xl mb-4">🏥</div>
+                            <h3 class="text-lg font-semibold text-cyan-400 mb-2">Healthcare</h3>
+                            <p class="text-sm text-gray-400">Patient records and treatment tracking</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl text-center">
+                            <div class="text-4xl mb-4">📊</div>
+                            <h3 class="text-lg font-semibold text-cyan-400 mb-2">Data Analytics</h3>
+                            <p class="text-sm text-gray-400">Consistent reporting and data processing</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl text-center">
+                            <div class="text-4xl mb-4">🔄</div>
+                            <h3 class="text-lg font-semibold text-cyan-400 mb-2">Any System</h3>
+                            <p class="text-sm text-gray-400">Where data consistency is paramount</p>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl text-center">
+                            <div class="text-4xl mb-4">⚙️</div>
+                            <h3 class="text-lg font-semibold text-cyan-400 mb-2">Database Systems</h3>
+                            <p class="text-sm text-gray-400">ACID compliance and reliability</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 14: WAL Advantages -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">14 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">WAL Advantages</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">Performance Benefits:</h3>
+                            <div class="space-y-3">
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-green-400 mr-2">⚡</span>
+                                        <span class="font-semibold text-white">Sequential Writes</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Much faster than random I/O to database files</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-green-400 mr-2">🔄</span>
+                                        <span class="font-semibold text-white">Batch Processing</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Changes can be applied in batches for efficiency</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-green-400 mr-2">📈</span>
+                                        <span class="font-semibold text-white">Scalability</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Handles high transaction volumes effectively</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">Reliability Benefits:</h3>
+                            <div class="space-y-3">
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-blue-400 mr-2">🔒</span>
+                                        <span class="font-semibold text-white">Crash Recovery</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Complete recovery from any system failure</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-blue-400 mr-2">⏰</span>
+                                        <span class="font-semibold text-white">Point-in-Time Recovery</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Restore database to any specific point</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <div class="flex items-center mb-2">
+                                        <span class="text-blue-400 mr-2">🔍</span>
+                                        <span class="font-semibold text-white">Audit Trail</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400">Complete history of all database changes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 15: Future of Database Atomicity -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">15 / 16</div>
+                <div class="max-w-6xl mx-auto text-center">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8">Future of Database Atomicity</h2>
+                    <div class="glass-card p-8 rounded-2xl mb-8">
+                        <p class="text-xl text-gray-300 mb-4">
+                            As database systems continue to evolve, atomicity remains a fundamental requirement that enables developers to build reliable applications with confidence in their data integrity guarantees.
+                        </p>
+                        <p class="text-lg text-gray-400">
+                            The implementation of atomicity through WAL and similar mechanisms represents one of the most significant achievements in database system design.
+                        </p>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-4 mt-8">
+                        <div class="glass-card p-4 rounded-lg text-center">
+                            <div class="text-2xl mb-2">🚀</div>
+                            <h4 class="font-semibold text-cyan-400">Distributed Systems</h4>
+                            <p class="text-sm text-gray-400">Atomicity across multiple nodes</p>
+                        </div>
+                        <div class="glass-card p-4 rounded-lg text-center">
+                            <div class="text-2xl mb-2">☁️</div>
+                            <h4 class="font-semibold text-cyan-400">Cloud Databases</h4>
+                            <p class="text-sm text-gray-400">Scalable atomic transactions</p>
+                        </div>
+                        <div class="glass-card p-4 rounded-lg text-center">
+                            <div class="text-2xl mb-2">⚡</div>
+                            <h4 class="font-semibold text-cyan-400">High-Performance Databases</h4>
+                            <p class="text-sm text-gray-400">Next-generation atomic operations</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 16: References -->
+            <div class="slide absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center p-8 bg-gray-900 hidden">
+                <div class="slide-counter">16 / 16</div>
+                <div class="max-w-6xl mx-auto">
+                    <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-8 text-center">References</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">Academic Sources:</h3>
+                            <div class="space-y-3">
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">C. J. Date</h4>
+                                    <p class="text-sm text-gray-400">"An Introduction to Database Systems" (8th ed.). Pearson Education.</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">Silberschatz, Korth, Sudarshan</h4>
+                                    <p class="text-sm text-gray-400">"Database System Concepts" (7th ed.). McGraw-Hill Education.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <h3 class="text-2xl font-semibold text-white mb-4">Technical Documentation:</h3>
+                            <div class="space-y-3">
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">SQLite Documentation</h4>
+                                    <p class="text-sm text-gray-400">"Write-Ahead Logging". SQLite Consortium.</p>
+                                </div>
+                                <div class="glass-card p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-1">PostgreSQL Documentation</h4>
+                                    <p class="text-sm text-gray-400">"WAL Internals". PostgreSQL Global Development Group.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 text-center">
+                        <div class="glass-card p-6 rounded-xl inline-block">
+                            <p class="text-lg text-gray-300 mb-2">🎓 Educational Resource</p>
+                            <p class="text-sm text-gray-400">This presentation provides an in-depth exploration of database atomicity and Write-Ahead Logging implementation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex items-center justify-between w-full max-w-4xl mt-4">
+        <button id="prev-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed">
+            Previous
+        </button>
+        <div id="slide-counter" class="text-gray-400 text-lg font-medium">
+            1 / 16
+        </div>
+        <button id="next-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed">
+            Next
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide');
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const slideCounter = document.getElementById('slide-counter');
+            const progressBar = document.getElementById('progress-bar');
+            let currentSlide = 0;
+            const totalSlides = slides.length;
+
+            function updateSlide() {
+                // Hide all slides
+                slides.forEach((slide, index) => {
+                    if (index === currentSlide) {
+                        slide.classList.remove('hidden');
+                        slide.style.opacity = 1;
+                    } else {
+                        slide.classList.add('hidden');
+                        slide.style.opacity = 0;
+                    }
+                });
+
+                // Update counter
+                slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+
+                // Update progress bar
+                const progress = ((currentSlide + 1) / totalSlides) * 100;
+                progressBar.style.width = `${progress}%`;
+
+                // Update button states
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+
+                // Update slide counter in header
+                const slideCounters = document.querySelectorAll('.slide-counter');
+                slideCounters.forEach(counter => {
+                    counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+                });
+            }
+
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < totalSlides - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    nextBtn.click();
+                } else if (e.key === 'ArrowLeft') {
+                    prevBtn.click();
+                } else if (e.key === 'Home') {
+                    currentSlide = 0;
+                    updateSlide();
+                } else if (e.key === 'End') {
+                    currentSlide = totalSlides - 1;
+                    updateSlide();
+                }
+            });
+
+            // Touch/swipe support for mobile
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            document.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+
+            document.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // Swipe left - next slide
+                    nextBtn.click();
+                } else if (touchEndX > touchStartX + swipeThreshold) {
+                    // Swipe right - previous slide
+                    prevBtn.click();
+                }
+            }
+
+            // Initialize Prism.js for syntax highlighting
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightAll();
+            }
+
+            // Initial setup
+            updateSlide();
+        });
+    </script>
+</body>
+</html>
